@@ -68,6 +68,7 @@ G2D_EXPORT void WICInitialize();
 G2D_EXPORT void WICUnInitialize();
 
 G2D_EXPORT HRESULT LoadBitmapFromFile(ID2D1RenderTarget* pRenderTarget, LPCWSTR szPath, ID2D1Bitmap** ppBitmap);
+G2D_EXPORT HRESULT LoadBitmapFromResource(ID2D1RenderTarget* pRenderTarget, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, ID2D1Bitmap** ppBitmap);
 G2D_EXPORT HRESULT CreateFontCollectionFromFile(IDWriteFactory5* pWriteFactory, LPCWSTR szPath, IDWriteFontCollection1** ppFontCollection, LPWSTR FontFamilyBuffer, UINT* BufSize);
 
 #endif // __cplusplus

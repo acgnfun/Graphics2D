@@ -258,10 +258,6 @@ HRESULT LoadBitmapFromFile(ID2D1RenderTarget* pRenderTarget, LPCWSTR szPath, ID2
 	}
 	if (SUCCEEDED(hr))
 	{
-		// Create a Direct2D bitmap from the WIC bitm
-	}
-	if (SUCCEEDED(hr))
-	{
 		// Create a Direct2D bitmap from the WIC bitmap.
 		hr = pRenderTarget->CreateBitmapFromWicBitmap(
 			pConverter,
@@ -305,5 +301,94 @@ HRESULT CreateFontCollectionFromFile(IDWriteFactory5* pWriteFactory, LPCWSTR szP
 	if (pFFName) pFFName->Release();
 	if (!SUCCEEDED(hr) && pFCollection) pFCollection->Release();
 	if (SUCCEEDED(hr)) *ppFontCollection = pFCollection;
+	return hr;
+}
+
+HRESULT LoadBitmapFromResource(ID2D1RenderTarget* pRenderTarget, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, ID2D1Bitmap** ppBitmap)
+{
+	if (!_wic_pFactory) return E_FAIL;
+	IWICBitmapDecoder* pDecoder = nullptr;
+	IWICBitmapFrameDecode* pSource = nullptr;
+	IWICFormatConverter* pConverter = nullptr;
+	IWICStream* pStream = nullptr;
+	HRSRC imageResHandle = nullptr;
+	HGLOBAL imageResDataHandle = nullptr;
+	void* pImageFile = nullptr;
+	DWORD imageFileSize = 0;
+	imageResHandle = FindResourceW(hModule, szResourceName, szResourceType);
+	HRESULT hr = imageResHandle ? S_OK : E_FAIL;
+	if (SUCCEEDED(hr))
+	{
+		// Load the resource.
+		imageResDataHandle = LoadResource(hModule, imageResHandle);
+		hr = imageResDataHandle ? S_OK : E_FAIL;
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Lock it to get a system memory pointer.
+		pImageFile = LockResource(imageResDataHandle);
+		hr = pImageFile ? S_OK : E_FAIL;
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Calculate the size.
+		imageFileSize = SizeofResource(hModule, imageResHandle);
+		hr = imageFileSize ? S_OK : E_FAIL;
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Create a WIC stream to map onto the memory.
+		hr = _wic_pFactory->CreateStream(&pStream);
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Initialize the stream with the memory pointer and size.
+		hr = pStream->InitializeFromMemory(
+			reinterpret_cast<BYTE*>(pImageFile),
+			imageFileSize
+		);
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Create a decoder for the stream.
+		hr = _wic_pFactory->CreateDecoderFromStream(
+			pStream,
+			NULL,
+			WICDecodeMetadataCacheOnLoad,
+			&pDecoder
+		);
+	}
+	if (SUCCEEDED(hr))
+	{
+		hr = pDecoder->GetFrame(0, &pSource);
+	}
+	if (SUCCEEDED(hr))
+	{
+		hr = _wic_pFactory->CreateFormatConverter(&pConverter);
+	}
+	if (SUCCEEDED(hr))
+	{
+		hr = pConverter->Initialize(
+			pSource,
+			GUID_WICPixelFormat32bppPBGRA,
+			WICBitmapDitherTypeNone,
+			NULL,
+			0.f,
+			WICBitmapPaletteTypeMedianCut
+		);
+	}
+	if (SUCCEEDED(hr))
+	{
+		// Create a Direct2D bitmap from the WIC bitmap.
+		hr = pRenderTarget->CreateBitmapFromWicBitmap(
+			pConverter,
+			NULL,
+			ppBitmap
+		);
+	}
+	if (pDecoder) pDecoder->Release();
+	if (pSource) pSource->Release();
+	if (pConverter) pConverter->Release();
+	if (pStream) pStream->Release();
 	return hr;
 }
