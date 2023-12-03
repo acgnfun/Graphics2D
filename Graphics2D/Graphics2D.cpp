@@ -4,16 +4,14 @@
 #include <wincodec.h>
 #include <wincodecsdk.h>
 
+static unsigned long long _gd2a_counter = 0;
 ID2D1Factory* _gd2a_graphics_pFactory = nullptr;
 IDWriteFactory5* _gd2a_write_pFactory = nullptr;
 IWICImagingFactory* _wic_pFactory = nullptr;
 
-LRESULT CALLBACK G2D_WndProc(HWND, UINT, WPARAM, LPARAM);
-
-class _g2da
+static void _gd2a_Init()
 {
-public:
-	_g2da()
+	if (_gd2a_counter == 0)
 	{
 		CoInitialize(nullptr);
 		if (D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &_gd2a_graphics_pFactory) != S_OK)
@@ -25,15 +23,22 @@ public:
 		) != S_OK)
 			throw "g2da create write factory fail.";
 	}
-	~_g2da()
+	_gd2a_counter++;
+}
+
+static void _gd2a_Uninit()
+{
+	if (_gd2a_counter == 0) return;
+	_gd2a_counter--;
+	if (_gd2a_counter == 0)
 	{
-		if (_gd2a_graphics_pFactory) _gd2a_graphics_pFactory->Release();
+		if (_gd2a_graphics_pFactory)_gd2a_graphics_pFactory->Release();
+		if (_gd2a_write_pFactory)_gd2a_write_pFactory->Release();
 		_gd2a_graphics_pFactory = nullptr;
-		if (_gd2a_write_pFactory) _gd2a_write_pFactory->Release();
 		_gd2a_write_pFactory = nullptr;
-		CoUninitialize();
+		//CoUninitialize();
 	}
-} __g2daobj;
+}
 
 G2DObject::G2DObject()
 {
@@ -51,6 +56,7 @@ G2DObject::~G2DObject()
 
 void G2DObject::Initialize(HWND hWnd)
 {
+	_gd2a_Init();
 	_hWnd = hWnd;
 	pFactory = _gd2a_graphics_pFactory;
 	_DpiScale = float(USER_DEFAULT_SCREEN_DPI) / GetDpiForWindow(hWnd);
@@ -69,6 +75,7 @@ void G2DObject::Uninitialize(G2DCallback RefreshResourceCallback)
 	}
 	pFactory = nullptr;
 	_DpiScale = 0.0f;
+	_gd2a_Uninit();
 }
 
 void G2DObject::Resize(int Width, int Height)
@@ -101,6 +108,10 @@ bool G2DObject::RefreshResource()
 
 bool G2DObject::BeginDraw()
 {
+	PAINTSTRUCT ps;
+	HDC hdc = BeginPaint(_hWnd, &ps);
+	// TODO: 在此处添加使用 hdc 的任何绘图代码...
+	EndPaint(_hWnd, &ps);
 	if (!pTarget) return false;
 	pTarget->BeginDraw();
 	return true;
@@ -194,11 +205,6 @@ float G2DObject::DpiScale()
 int G2DObject::PixelAdjust(int Origin)
 {
 	return Origin * _DpiScale;
-}
-
-LRESULT CALLBACK G2D_WndProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	return DefWindowProc(hWnd, Msg, wParam, lParam);
 }
 
 void WICInitialize()
