@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef GRAPHICS2DFRAME_H
-#define GRAPHICS2DFRAME_H
+#ifndef GRAPHICS2DV2_H
+#define GRAPHICS2DV2_H
 
 #ifdef __cplusplus
 
@@ -33,44 +33,69 @@
 	(GetSystemMetrics(SM_CYSCREEN) - (nHeight)) / 2, \
 	nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam)
 
-typedef bool(*G2DCallback)(void*);
+typedef bool(*G2D_CALLBACK)(void*);
 
-class G2D_EXPORT G2DObject
+class G2D_EXPORT G2D_OBJECT
 {
 public:
-	G2DObject();
-	~G2DObject();
-	G2DObject(const G2DObject&) = delete;
-	G2DObject& operator=(const G2DObject&) = delete;
+	G2D_OBJECT();
+	~G2D_OBJECT();
+	G2D_OBJECT(const G2D_OBJECT&) = delete;
+	G2D_OBJECT& operator=(const G2D_OBJECT&) = delete;
 	void Initialize(HWND hWnd);
-	void Uninitialize(G2DCallback RefreshResourceCallback = nullptr);
+	void Uninitialize(G2D_CALLBACK RefreshResourceCallback = nullptr);
 	void Resize(int Width, int Height);
 	bool RefreshResource();
 	bool BeginDraw();
 	bool DrawControl(D2D1_RECT_F Rect, LPCWSTR szText, IDWriteTextFormat* pTextFormat, D2D1_COLOR_F FrontColor, D2D1_COLOR_F BgColor, ID2D1Bitmap* pBgBitmap = nullptr);
 	bool DrawProgressBar(D2D1_RECT_F Rect, float Percentage, D2D1_COLOR_F FrontColor, D2D1_COLOR_F BgColor, ID2D1Bitmap* pFrontBitmap = nullptr, ID2D1Bitmap* pBgBitmap = nullptr);
-	bool EndDraw(G2DCallback RefreshResourceCallback = nullptr);
-	HWND hWnd();
+	bool EndDraw(G2D_CALLBACK RefreshResourceCallback = nullptr);
+	operator HWND();
+	operator ID2D1Factory* ();
+	operator ID2D1RenderTarget* ();
+	operator IDWriteFactory5* ();
 	ID2D1Factory* Factory();
 	ID2D1RenderTarget* Target();
-	IDWriteFactory* WriteFactory();
+	IDWriteFactory5* WFactory();
+	void CalcDpiScale();
 	float DpiScale();
-	int PixelAdjust(int Origin);
+	float PixelAdjust(int Origin);
+	bool Valid();
 private:
-	HWND _hWnd;
+	HWND hWnd;
 	ID2D1Factory* pFactory;
 	ID2D1HwndRenderTarget* pTarget;
 	IDWriteFactory5* pWriteFactory;
-	float _DpiScale;
+	float fDpiScale;
+	bool bValid;
 };
 
+class G2D_EXPORT G2D_FONTCOLLECTION
+{
+public:
+	G2D_FONTCOLLECTION();
+	~G2D_FONTCOLLECTION();
+	G2D_FONTCOLLECTION(const G2D_FONTCOLLECTION&) = delete;
+	G2D_FONTCOLLECTION& operator=(const G2D_FONTCOLLECTION&) = delete;
+	operator IDWriteFontCollection1* ();
+	void Release();
+private:
+	friend G2D_EXPORT HRESULT G2DCreateFontCollection(IDWriteFactory5* pWriteFactory, LPCWSTR szPath, G2D_FONTCOLLECTION* pFontCollection, LPWSTR FontFamilyBuffer, UINT* BufElemNum);
+	friend G2D_EXPORT HRESULT G2DCreateFontCollection(IDWriteFactory5* pWriteFactory, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, G2D_FONTCOLLECTION* pFontCollection, LPWSTR FontFamilyBuffer, UINT* BufElemNum);;
+	IDWriteInMemoryFontFileLoader* pMemoryLoader;
+	IDWriteFontCollection1* pFontCollection;
+};
+
+G2D_EXPORT void G2DInitialize();
+G2D_EXPORT void G2DUninitialize();
 G2D_EXPORT void WICInitialize();
 G2D_EXPORT void WICUnInitialize();
 
-G2D_EXPORT HRESULT LoadBitmapFromFile(ID2D1RenderTarget* pRenderTarget, LPCWSTR szPath, ID2D1Bitmap** ppBitmap);
-G2D_EXPORT HRESULT LoadBitmapFromResource(ID2D1RenderTarget* pRenderTarget, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, ID2D1Bitmap** ppBitmap);
-G2D_EXPORT HRESULT CreateFontCollectionFromFile(IDWriteFactory5* pWriteFactory, LPCWSTR szPath, IDWriteFontCollection1** ppFontCollection, LPWSTR FontFamilyBuffer, UINT* BufSize);
+G2D_EXPORT HRESULT G2DCreateBitmap(ID2D1RenderTarget* pRenderTarget, LPCWSTR szPath, ID2D1Bitmap** ppBitmap);
+G2D_EXPORT HRESULT G2DCreateBitmap(ID2D1RenderTarget* pRenderTarget, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, ID2D1Bitmap** ppBitmap);
+G2D_EXPORT HRESULT G2DCreateFontCollection(IDWriteFactory5* pWriteFactory, LPCWSTR szPath, G2D_FONTCOLLECTION* pFontCollection, LPWSTR FontFamilyBuffer, UINT* BufElemNum);
+G2D_EXPORT HRESULT G2DCreateFontCollection(IDWriteFactory5* pWriteFactory, HMODULE hModule, LPCWSTR szResourceName, LPCWSTR szResourceType, G2D_FONTCOLLECTION* pFontCollection, LPWSTR FontFamilyBuffer, UINT* BufElemNum);
 
 #endif // __cplusplus
 
-#endif // !GRAPHICS2DFRAME_H
+#endif // !GRAPHICS2DV2_H
